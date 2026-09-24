@@ -1,62 +1,33 @@
 {
   "schema_version": 1,
-  "suite": {
-    "name": "Codex Efficiency Suite",
-    "version": "0.1.0",
-    "stability": "early",
-    "purpose": "Reusable deterministic tools that reduce repeated agent work and improve verification."
-  },
-  "adoption_policy": {
-    "source_of_truth": "This manifest defines the tools Codex should consider for project work.",
-    "default_behavior": "Use every applicable tool marked stable unless the project or task explicitly excludes it.",
-    "experimental_behavior": "Do not use experimental tools unless explicitly requested or the task is tool development.",
-    "project_configuration": "Keep project-specific configuration local to each project and preserve existing conventions.",
-    "update_rule": "Every new tool must be registered here before it is considered stable and broadly adoptable."
-  },
+  "suite": "Codex Efficiency Suite",
+  "repository": "jtdelosh-ops/Codex-Efficiency-Suite",
   "tools": [
     {
       "id": "verification-runner",
-      "name": "Reproduction and Verification Runner",
-      "version": "0.1.0",
+      "name": "Verification Runner",
+      "purpose": "Run one explicitly configured command and preserve deterministic verification evidence.",
       "status": "stable",
-      "purpose": "Run an explicit verification command, preserve complete diagnostics, classify the result, and reject stale or changed-source evidence.",
-      "entrypoint": "python3 verify.py --root . --config verification.json --profile default",
+      "entrypoint": "verify.py",
+      "invocation": "python3 verify.py --root PROJECT --config PROJECT/verification.json --profile default",
+      "applicable_projects": ["projects with an explicit safe verification command"],
       "configuration": "verification.json",
-      "project_integration": [
-        "Add a project-specific verification.json.",
-        "Use the project's existing deterministic test or verification command.",
-        "Add .verification-runs/ to .gitignore.",
-        "Run after implementation changes and again before declaring completion."
-      ],
-      "outputs": [
-        ".verification-runs/<run-id>/report.json",
-        ".verification-runs/<run-id>/report.md",
-        ".verification-runs/<run-id>/stdout.log",
-        ".verification-runs/<run-id>/stderr.log"
-      ],
-      "acceptance": "Only PASS is successful. FAIL, TIMEOUT, and ERROR require investigation or explicit reporting.",
-      "requires": {
-        "runtime": "Python 3",
-        "dependencies": "None"
-      }
+      "outputs": ["JSON report", "Markdown report", "stdout log", "stderr log"],
+      "acceptance": "python3 -m unittest discover -v; PASS requires exit code zero and unchanged source snapshot"
+    },
+    {
+      "id": "repository-context-builder",
+      "name": "Repository Context Builder",
+      "purpose": "Collect changed files, important files, direct symbol/search evidence, likely tests, and a content freshness fingerprint.",
+      "status": "stable",
+      "entrypoint": "context.py",
+      "invocation": "python3 context.py --root PROJECT --config context.json --task TASK",
+      "applicable_projects": ["source repositories where focused file/test discovery is useful"],
+      "configuration": "context.json; include/exclude glob patterns, important filenames, max_files",
+      "outputs": ["context-packet.json", "context-packet.md"],
+      "freshness": "SHA-256 over eligible path/content pairs before and after collection; method identifies Git or content-snapshot fallback; fresh=false invalidates the packet",
+      "acceptance": "python3 -m unittest discover -v; tests cover Git and fallback snapshots, patterns, evidence, test discovery, output, invalid config, and stale detection"
     }
   ],
-  "tool_registration_schema": {
-    "required_fields": [
-      "id",
-      "name",
-      "version",
-      "status",
-      "purpose",
-      "entrypoint",
-      "project_integration",
-      "acceptance",
-      "requires"
-    ],
-    "allowed_statuses": [
-      "experimental",
-      "stable",
-      "deprecated"
-    ]
-  }
+  "future_tool_policy": "Update this manifest, guide, and relevant tests in the same change as every new tool. Mark stable only after acceptance tests pass; otherwise use experimental."
 }
