@@ -17,6 +17,14 @@ class PreflightError(Exception):
     pass
 
 
+PYTHON_TOKEN = "{python}"
+
+
+def resolve_command(command: list[str]) -> list[str]:
+    """Resolve portable command tokens without invoking a shell."""
+    return [sys.executable if part == PYTHON_TOKEN else part for part in command]
+
+
 def version_tuple(value: str) -> tuple[int, ...]:
     match = re.search(r"\d+(?:\.\d+)*", value)
     if not match:
@@ -57,13 +65,18 @@ def run(config: Any, root: Path) -> dict[str, Any]:
             name, constraint = item, None
         elif isinstance(item, dict) and isinstance(item.get("name"), str):
             name, constraint = item["name"], item.get("version")
+            if "version" in item and (not isinstance(constraint, str) or not constraint.strip()):
+                raise PreflightError("executable version constraints must be non-empty strings")
         else:
             raise PreflightError("Each executable must be a name or {name, version?} object.")
-        found = shutil.which(name)
+        lookup_name = sys.executable if name == PYTHON_TOKEN else name
+        found = shutil.which(lookup_name)
         if not found:
             add(f"executable:{name}", "FAIL", "not found on PATH")
         elif constraint:
             try:
+                if not isinstance(constraint, str):
+                    raise ValueError("version constraint must be a string")
                 result = subprocess.run([found, "--version"], capture_output=True, text=True, timeout=5, check=False)
                 output = (result.stdout + " " + result.stderr).strip()
                 ok = result.returncode == 0 and satisfies(output, str(constraint))
@@ -106,15 +119,17 @@ def run(config: Any, root: Path) -> dict[str, Any]:
     for item in config.get("commands", []):
         if not isinstance(item, dict) or not isinstance(item.get("command"), list) or not item["command"] or not all(isinstance(arg, str) and arg for arg in item["command"]):
             raise PreflightError("commands entries require a non-empty argument-array 'command'.")
-        cmd = item["command"]
+        cmd = resolve_command(item["command"])
         label = str(item.get("name", "command:" + Path(cmd[0]).name))
         timeout = item.get("timeout_seconds", 5)
         if not isinstance(timeout, (int, float)) or isinstance(timeout, bool) or timeout <= 0 or timeout > 30:
             raise PreflightError("command timeout_seconds must be >0 and <=30")
+        wanted = item.get("version")
+        if "version" in item and (not isinstance(wanted, str) or not wanted.strip()):
+            raise PreflightError("command version constraints must be non-empty strings")
         try:
             completed = subprocess.run(cmd, cwd=root, capture_output=True, text=True, timeout=timeout, check=False, shell=False)
             output = (completed.stdout + " " + completed.stderr).strip()
-            wanted = item.get("version")
             ok = completed.returncode == 0 and (not wanted or satisfies(output, str(wanted)))
             add(label, "PASS" if ok else "FAIL", f"exit {completed.returncode}; {output[:180] or 'no output'}")
         except subprocess.TimeoutExpired:
