@@ -1,7 +1,7 @@
 {
-  "executables": ["python3"],
+  "executables": ["{python}"],
   "runtime_versions": [{"runtime": "python", "constraint": ">=3.10"}],
   "paths": [{"path": "README.md", "type": "file"}],
   "environment": [],
-  "commands": [{"name": "python-version", "command": ["python3", "--version"], "version": ">=3.10", "timeout_seconds": 5}]
+  "commands": [{"name": "python-version", "command": ["{python}", "--version"], "version": ">=3.10", "timeout_seconds": 5}]
 }
