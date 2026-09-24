@@ -79,7 +79,7 @@ Use after repeated failed attempts to decide whether another retry is justified.
 {python} /path/to/Codex-Efficiency-Suite/progress_guard.py --input progress-guard-example.json --json-out .progress-guard/decision.json --markdown-out .progress-guard/decision.md
 ```
 
-Treat `STOP` as a circuit-breaker decision, not a final task failure: gather new evidence, change the approach, decompose the task, or escalate. Cosmetic changes to failure text do not count as progress. The tool only evaluates the supplied local history and does not infer novelty or escalate automatically.
+Treat `STOP` as a circuit-breaker decision, not a final task failure: gather new evidence, change the approach, decompose the task, or escalate. Cosmetic changes to failure text do not count as progress. Identifiers are compared in full and oversized identifiers are rejected. The tool only evaluates the supplied local history and does not infer novelty or escalate automatically.
 
 ## Snapshot-Aware Cache Reuse (`result_cache.py`) — stable
 
@@ -90,7 +90,7 @@ Use only for deterministic outputs with complete source, configuration, environm
 {python} /path/to/Codex-Efficiency-Suite/result_cache.py get --input result-cache-example.json --store .result-cache/cache.json
 ```
 
-Reuse only an explicit `HIT`. A `MISS` requires recomputation. Never put raw secrets, environment values, or unbounded logs in cache keys or values; callers are responsible for complete fingerprints. Cache results are bounded and optional expiry is supported.
+Reuse only an explicit `HIT`. A `MISS` requires recomputation. Never put raw secrets, environment values, or unbounded logs in cache keys or values; callers are responsible for complete fingerprints. Oversized strings/lists are rejected rather than truncated, and optional expiry is supported.
 
 ### No-Progress Circuit Breaker (`progress_guard.py`) — stable
 
@@ -100,7 +100,7 @@ Use after repeated failed attempts when deciding whether to continue retrying. S
 python3 /path/to/Codex-Efficiency-Suite/progress_guard.py --input progress-guard-example.json --json-out .progress-guard/decision.json --markdown-out .progress-guard/decision.md
 ```
 
-The default stop threshold is three consecutive matching signatures; configure `threshold` in the input or use `--threshold`. Only a changed explicit evidence/approach identifier counts as new. Cosmetic edits to summary text do not. A `STOP` means stop equivalent retries and obtain different evidence, change approach, reduce scope, or request review; it does not itself authorize escalation. The tool is deterministic and does not infer whether evidence is truly novel.
+The default stop threshold is three consecutive matching signatures; configure `threshold` in the input or use `--threshold`. Only a changed explicit evidence/approach identifier counts as new. Cosmetic edits to summary text do not. A `STOP` means stop equivalent retries and obtain different evidence, change approach, reduce scope, or request review; it does not itself authorize escalation. The tool is deterministic and does not infer whether evidence is truly novel. Identifiers are compared in full and oversized identifiers are rejected.
 
 ### Snapshot-Aware Cache Reuse (`result_cache.py`) — stable
 
