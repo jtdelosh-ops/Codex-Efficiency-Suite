@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -29,12 +30,21 @@ class PreflightTests(unittest.TestCase):
         self.assertNotIn("never-write-this", rendered)
 
     def test_command_failure_fails(self):
-        result = preflight.run({"commands": [{"command": ["python3", "-c", "raise SystemExit(2)"]}]}, Path.cwd())
+        result = preflight.run({"commands": [{"command": ["{python}", "-c", "raise SystemExit(2)"]}]}, Path.cwd())
         self.assertEqual(result["status"], "FAIL")
+
+    def test_python_token_uses_active_interpreter(self):
+        result = preflight.run({"commands": [{"command": ["{python}", "-c", "import sys; print(sys.executable)"]}]}, Path.cwd())
+        self.assertEqual(result["status"], "PASS")
+        self.assertIn(sys.executable, result["checks"][0]["detail"])
 
     def test_malformed_configuration_errors(self):
         with self.assertRaises(preflight.PreflightError):
             preflight.run({"paths": "bad"}, Path.cwd())
+        with self.assertRaises(preflight.PreflightError):
+            preflight.run({"executables": [{"name": "python3", "version": ""}]}, Path.cwd())
+        with self.assertRaises(preflight.PreflightError):
+            preflight.run({"commands": [{"command": ["python3", "--version"], "version": ""}]}, Path.cwd())
 
     def test_cli_writes_json_and_markdown(self):
         with tempfile.TemporaryDirectory() as directory:
