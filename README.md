@@ -2,7 +2,25 @@
 
 For cross-platform JSON command configurations, use the portable `{python}` token. The runner and preflight resolve it to the active Python interpreter (`sys.executable`), avoiding Windows Store `python3` aliases. When launching the suite itself from a shell, use the interpreter available on that platform.
 
-The suite provides a deterministic Verification Runner, Repository Context Builder, Work-Order Builder, Environment Preflight, Failure History Keeper, and Session Handoff Builder. See [suite-manifest.json](suite-manifest.json) for each tool's status and contract, and [CODEX-SUITE-GUIDE.md](CODEX-SUITE-GUIDE.md) for when and how Codex should use them. All are local, dependency-free tools; none calls a model or network service.
+The suite provides a deterministic Verification Runner, Repository Context Builder, Work-Order Builder, Environment Preflight, Failure History Keeper, Session Handoff Builder, No-Progress Circuit Breaker, and Snapshot-Aware Cache Reuse. See [suite-manifest.json](suite-manifest.json) for each tool's status and contract, and [CODEX-SUITE-GUIDE.md](CODEX-SUITE-GUIDE.md) for when and how Codex should use them. All are local, dependency-free tools; none calls a model or network service.
+
+## No-Progress Circuit Breaker
+
+Use after repeated equivalent failures. Stable signatures detect repeats; only explicit changed evidence/approach identifiers count as materially new, not changed summary wording.
+
+```sh
+python3 progress_guard.py --input progress-guard-example.json --json-out .progress-guard/decision.json --markdown-out .progress-guard/decision.md
+```
+
+## Snapshot-Aware Cache Reuse
+
+Cache deterministic outputs only when every key input matches: tool, source, configuration, environment, and dependency fingerprints. Never supply raw secrets or unbounded logs.
+
+```sh
+python3 result_cache.py put --input result-cache-example.json --store .result-cache/cache.json
+python3 result_cache.py get --input result-cache-example.json --store .result-cache/cache.json
+python3 result_cache.py query --store .result-cache/cache.json --limit 20
+```
 
 ## Environment Preflight
 
@@ -99,3 +117,5 @@ python3 -m unittest -v
 ```
 
 It exercises successful verification, intentional failure, timeout, command/setup errors, missing dependency input, full diagnostic preservation, snapshot freshness, and report generation.
+
+The suite also includes a no-progress circuit breaker (`progress_guard.py`) and snapshot-aware result cache (`result_cache.py`). See `CODEX-SUITE-GUIDE.md` and `suite-manifest.json` for their safe invocation and adoption rules.
