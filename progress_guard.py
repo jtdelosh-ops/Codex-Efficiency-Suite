@@ -10,6 +10,7 @@ from typing import Any
 
 MAX_ATTEMPTS = 100
 MAX_TEXT = 500
+MAX_IDENTIFIER = 1024
 
 
 class GuardError(ValueError):
@@ -33,6 +34,8 @@ def decide(payload: Any, threshold: int | None = None, limit: int = MAX_ATTEMPTS
         for key in ("evidence_id", "approach_id", "summary"):
             if key in item and not isinstance(item[key], str):
                 raise GuardError(f"{key} must be a string")
+            if key in ("evidence_id", "approach_id") and key in item and len(item[key]) > MAX_IDENTIFIER:
+                raise GuardError(f"{key} exceeds {MAX_IDENTIFIER} characters")
     recent = attempts[-limit:]
     if not recent:
         return {"decision": "CONTINUE", "reason": "No failure attempts recorded.", "matched_history": [],
@@ -40,25 +43,23 @@ def decide(payload: Any, threshold: int | None = None, limit: int = MAX_ATTEMPTS
     latest = recent[-1]
     sig = latest["signature"]
     matched = []
+    newer = None
     for row in reversed(recent):
         if row["signature"] != sig:
             break
-        matched.append({"signature": sig, **{k: row[k][:MAX_TEXT] for k in ("summary", "evidence_id", "approach_id") if k in row}})
+        if newer is not None and any(row.get(field) != newer.get(field)
+                                      for field in ("evidence_id", "approach_id")
+                                      if row.get(field) is not None or newer.get(field) is not None):
+            # Reset the equivalent-failure streak at an explicitly changed investigation input.
+            break
+        matched.append({"signature": sig, **{
+            k: (row[k][:MAX_TEXT] if k == "summary" else row[k])
+            for k in ("summary", "evidence_id", "approach_id") if k in row
+        }})
+        newer = row
     matched.reverse()
-    # A genuinely new evidence or approach identifier since the prior equivalent failure
-    # is a reason to continue. Cosmetic summary changes are deliberately ignored.
-    novel = False
-    if len(matched) > 1:
-        prior = matched[-2]
-        for field in ("evidence_id", "approach_id"):
-            value = latest.get(field)
-            if value and value != prior.get(field):
-                novel = True
     count = len(matched)
-    if novel:
-        decision, reason = "CONTINUE", "A materially new evidence or approach identifier was recorded since the previous equivalent failure."
-        action = "Continue once using the new evidence/approach; record its result with stable identifiers."
-    elif count >= configured:
+    if count >= configured:
         decision, reason = "STOP", f"The same failure signature repeated {count} consecutive times without materially new evidence or approach."
         action = "Stop retrying. Gather different evidence, change the approach, reduce scope, or request review/escalation."
     else:
