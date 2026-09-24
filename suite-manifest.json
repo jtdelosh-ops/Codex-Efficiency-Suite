@@ -51,7 +51,7 @@
       "applicable_projects": ["projects with explicit local runtime, path, or environment prerequisites"],
       "configuration": "preflight.json; requirements only, executable argument arrays, and bounded command timeouts",
       "outputs": ["concise JSON stdout and report", "Markdown report"],
-      "safety_freshness_limits": "No shell invocation or network access; environment values are never read into output; optional commands have a maximum 30-second timeout; only Python runtime constraints are supported.",
+      "safety_freshness_limits": "No shell invocation or network access; environment values are never read into output; optional commands have a maximum 30-second timeout; only Python runtime constraints are supported; {python} resolves to the active interpreter.",
       "acceptance": "test_preflight.py covers missing requirements, version constraints, environment presence without values, failing commands, malformed config, and output files"
     },
     {
