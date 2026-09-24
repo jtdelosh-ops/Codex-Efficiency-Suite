@@ -43,11 +43,12 @@ class ResultCacheTests(unittest.TestCase):
         self.assertEqual(len(json.loads(self.path.read_text())), 1000)
         self.assertEqual(query(self.path, 100)["count"], 100)
         with self.assertRaises(CacheError): query(self.path, 101)
-        put(self.path, KEY, {"large": "x" * 9000}, now=2)
-        self.assertLessEqual(len(json.dumps(get(self.path, KEY, now=2)["value"]).encode()), 2100)
+        with self.assertRaises(CacheError): put(self.path, KEY, {"large": "x" * 9000}, now=2)
+        with self.assertRaises(CacheError): put(self.path, KEY, {"items": list(range(101))}, now=2)
 
     def test_malformed_input_and_store(self):
         with self.assertRaises(CacheError): put(self.path, {"tool": "ctx"}, {})
+        with self.assertRaises(CacheError): put(self.path, dict(KEY, environment="raw-secret-value"), {})
         self.path.write_text("not json")
         with self.assertRaises(CacheError): get(self.path, KEY)
 
