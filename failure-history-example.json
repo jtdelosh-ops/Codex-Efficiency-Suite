@@ -1,0 +1,4 @@
+[
+  {"tool": "verification-runner", "status": "FAIL", "summary": "Unit tests failed: 2 assertions", "source": "example"},
+  {"tool": "repository-context-builder", "status": "ERROR", "summary": "Context packet became stale during collection", "source": "example"}
+]
