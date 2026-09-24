@@ -1,0 +1,11 @@
+# Generated verification evidence
+.verification-runs/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+
+# Local environment
+.venv/
+venv/
+.env
