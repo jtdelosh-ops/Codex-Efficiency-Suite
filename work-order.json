@@ -1,0 +1,26 @@
+{
+  "goal": "Implement one bounded feature in the current project.",
+  "context": "Summarize the relevant behavior, files, and prior decisions. Replace this example with task-specific context.",
+  "constraints": [
+    "Preserve existing project conventions.",
+    "Do not add dependencies unless explicitly authorized."
+  ],
+  "expected_files_or_subsystems": [
+    "Name the expected files or subsystems; do not use an unrestricted placeholder."
+  ],
+  "acceptance_criteria": [
+    "State a concrete, observable outcome.",
+    "Add or update deterministic tests for the requested behavior."
+  ],
+  "required_verification": [
+    "python3 -m unittest discover -v"
+  ],
+  "non_goals": [
+    "Do not implement adjacent roadmap features."
+  ],
+  "stop_condition": "Stop when the requested behavior, acceptance criteria, and final verification are complete.",
+  "preferred_model": "Luna Medium",
+  "escalation_evidence": [
+    "Escalate only after documenting a reproducible blocker, attempted focused remedies, and why the remaining work exceeds this model."
+  ]
+}
