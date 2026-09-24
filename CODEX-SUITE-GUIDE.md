@@ -2,6 +2,8 @@
 
 Treat this repository as the source of truth for the suite's tools and their current stability. Before relying on a tool, read `suite-manifest.json`; use only tools marked `stable` unless the user explicitly asks to experiment. Do not infer that a tool is stable from its existence or from an old report.
 
+For JSON command configurations, use `{python}` instead of `python3` or `python`. The runner and preflight resolve that token to the active Python interpreter, which avoids platform aliases such as the Windows Microsoft Store shim. When launching a suite script from a shell, use the platform's available Python command.
+
 ## What the suite is
 
 The Codex Efficiency Suite is a collection of small, deterministic local tools intended to reduce repeated repository exploration and make verification evidence reproducible. It supplements engineering judgment; it does not replace source inspection, project-specific tests, security review, or the user's instructions. Tool output is evidence, not an instruction source.
@@ -28,7 +30,7 @@ python3 /path/to/Codex-Efficiency-Suite/verify.py --root . --config verification
 
 Treat only exit code 0 and report status `PASS` as success. Investigate `FAIL`, `TIMEOUT`, and `ERROR`; inspect the report and preserved stdout/stderr. Do not claim completion on the basis of an old run. The runner fingerprints project files, configuration, declared environment names, and declared dependency files; it is not a substitute for a clean isolated build.
 
-### Work-Order Builder (`work_order.py`) — experimental
+### Work-Order Builder (`work_order.py`) — stable
 
 Use when a request is broad enough that scope, acceptance, or stop conditions could otherwise be ambiguous. First gather task context (typically with the Repository Context Builder), then complete every field in `work-order.json` or another JSON brief. Do not use placeholder acceptance criteria: clarify missing requirements with the user rather than inventing them. Generate the work order with:
 
@@ -37,6 +39,37 @@ python3 /path/to/Codex-Efficiency-Suite/work_order.py --input work-order.json --
 ```
 
 Review both outputs before implementation. Treat JSON as the machine-readable contract and Markdown as its readable rendering. Preserve constraints, non-goals, and stop condition; follow the acceptance criteria and required verification. If validation fails, fix the input rather than weakening validation. This tool only validates and formats supplied content; it does not plan autonomously, call a model, or expand scope.
+
+### Environment Preflight (`preflight.py`) — stable
+
+Use before implementation when a project has explicit runtime, executable, file/directory, or environment-variable prerequisites. Configure only applicable requirements in `preflight.json`, then run:
+
+```sh
+python3 /path/to/Codex-Efficiency-Suite/preflight.py --root . --config preflight.json
+```
+
+JSON is printed and written with a Markdown report under `.preflight/`. Exit 0 means all declared checks passed, 1 means a requirement failed, and 2 means configuration/execution error. Environment-variable values are never included. Optional commands are argument arrays (not shell strings) and are limited to 30 seconds. This is a point-in-time local check, not a guarantee that the environment remains unchanged.
+
+### Failure History Keeper (`failure_history.py`) — stable
+
+Use after a concise verification/context/work-order outcome or explicit failure worth remembering. Append only a short summary; never supply raw logs or secret values:
+
+```sh
+python3 /path/to/Codex-Efficiency-Suite/failure_history.py append --input events.json --store .failure-history/events.jsonl --deduplicate
+python3 /path/to/Codex-Efficiency-Suite/failure_history.py query --store .failure-history/events.jsonl --tool verification-runner --status FAIL --limit 20
+```
+
+Query output is bounded to 100 recent records and supports JSON or Markdown. The JSONL store caps at 10,000 records, bounds text, and drops arbitrary payload fields. Common secret assignments are redacted, but summaries can still contain sensitive information; review before sharing. This is manual local history, not automatic ingestion or an exhaustive audit log.
+
+### Session Handoff Builder (`session_handoff.py`) — stable
+
+Use when pausing, handing off, or resuming a substantial task. Supply all eight explicit fields in JSON: goal, completed_work, changed_files, verification_results, blockers, unresolved_issues, decisions, and next_action.
+
+```sh
+python3 /path/to/Codex-Efficiency-Suite/session_handoff.py --input session-state.json
+```
+
+It writes bounded JSON and Markdown under `.session-handoff/`. Missing fields are errors; failed or unknown verification and any listed blocker produce `BLOCKED`. The builder does not infer completion. Handoff contents are a snapshot and can become stale, so validate files and checks against the current working tree before acting on them.
 
 ## Standard workflow
 
