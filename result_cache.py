@@ -49,11 +49,15 @@ def safe_value(value: Any) -> Any:
             result[k] = safe_value(v)
         return result
     if isinstance(value, list):
-        return [safe_value(v) for v in value[:100]]
+        if len(value) > 100:
+            raise CacheError("cached list exceeds 100 items")
+        return [safe_value(v) for v in value]
     if isinstance(value, str):
         if SECRET_VALUE.search(value):
             raise CacheError("cached result appears to contain a secret assignment")
-        return value[:2000]
+        if len(value.encode("utf-8")) > 2000:
+            raise CacheError("cached string exceeds 2000 bytes")
+        return value
     if value is None or isinstance(value, (bool, int, float)):
         return value
     raise CacheError("cached result must contain only JSON values")
@@ -62,7 +66,11 @@ def safe_value(value: Any) -> Any:
 def load(path: Path) -> list[dict[str, Any]]:
     if not path.exists(): return []
     try:
+        if path.stat().st_size > MAX_RECORDS * MAX_BYTES:
+            raise CacheError("cache store exceeds 16 MiB safety limit")
         data = json.loads(path.read_text(encoding="utf-8"))
+    except CacheError:
+        raise
     except (OSError, json.JSONDecodeError) as exc:
         raise CacheError(f"invalid cache store: {exc}") from exc
     if not isinstance(data, list) or len(data) > MAX_RECORDS or any(not isinstance(x, dict) for x in data):
