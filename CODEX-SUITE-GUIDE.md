@@ -71,14 +71,58 @@ python3 /path/to/Codex-Efficiency-Suite/session_handoff.py --input session-state
 
 It writes bounded JSON and Markdown under `.session-handoff/`. Missing fields are errors; failed or unknown verification and any listed blocker produce `BLOCKED`. The builder does not infer completion. Handoff contents are a snapshot and can become stale, so validate files and checks against the current working tree before acting on them.
 
+## No-Progress Circuit Breaker (`progress_guard.py`) — stable
+
+Use after repeated failed attempts to decide whether another retry is justified. Supply bounded attempt history with stable failure signatures and explicit `evidence_id` or `approach_id` values when a materially new diagnostic or implementation approach exists:
+
+```sh
+{python} /path/to/Codex-Efficiency-Suite/progress_guard.py --input progress-guard-example.json --json-out .progress-guard/decision.json --markdown-out .progress-guard/decision.md
+```
+
+Treat `STOP` as a circuit-breaker decision, not a final task failure: gather new evidence, change the approach, decompose the task, or escalate. Cosmetic changes to failure text do not count as progress. The tool only evaluates the supplied local history and does not infer novelty or escalate automatically.
+
+## Snapshot-Aware Cache Reuse (`result_cache.py`) — stable
+
+Use only for deterministic outputs with complete source, configuration, environment, and dependency fingerprints:
+
+```sh
+{python} /path/to/Codex-Efficiency-Suite/result_cache.py put --input result-cache-example.json --store .result-cache/cache.json
+{python} /path/to/Codex-Efficiency-Suite/result_cache.py get --input result-cache-example.json --store .result-cache/cache.json
+```
+
+Reuse only an explicit `HIT`. A `MISS` requires recomputation. Never put raw secrets, environment values, or unbounded logs in cache keys or values; callers are responsible for complete fingerprints. Cache results are bounded and optional expiry is supported.
+
+### No-Progress Circuit Breaker (`progress_guard.py`) — stable
+
+Use after repeated failed attempts when deciding whether to continue retrying. Supply bounded local history with a stable `signature` for each failure; optionally include `evidence_id` and `approach_id` to identify a materially changed investigation or method:
+
+```sh
+python3 /path/to/Codex-Efficiency-Suite/progress_guard.py --input progress-guard-example.json --json-out .progress-guard/decision.json --markdown-out .progress-guard/decision.md
+```
+
+The default stop threshold is three consecutive matching signatures; configure `threshold` in the input or use `--threshold`. Only a changed explicit evidence/approach identifier counts as new. Cosmetic edits to summary text do not. A `STOP` means stop equivalent retries and obtain different evidence, change approach, reduce scope, or request review; it does not itself authorize escalation. The tool is deterministic and does not infer whether evidence is truly novel.
+
+### Snapshot-Aware Cache Reuse (`result_cache.py`) — stable
+
+Use only for deterministic results whose complete inputs can be fingerprinted. A cache key must include tool, source, configuration, environment, and dependency fingerprints. Supply opaque fingerprints (never raw environment values or credentials):
+
+```sh
+python3 /path/to/Codex-Efficiency-Suite/result_cache.py put --input result-cache-example.json --store .result-cache/cache.json
+python3 /path/to/Codex-Efficiency-Suite/result_cache.py get --input result-cache-example.json --store .result-cache/cache.json
+python3 /path/to/Codex-Efficiency-Suite/result_cache.py query --store .result-cache/cache.json --limit 20
+```
+
+Only `HIT` with all five exact key dimensions matching permits reuse. A source/configuration/environment/dependency mismatch, absent entry, or expired entry returns `MISS`; a miss must trigger a fresh computation. Records are capped at 1000, each cached value at 8 KiB, arrays and strings are bounded, and secret-like fields/common secret assignments are rejected. Do not cache raw logs, credentials, or results whose relevant inputs are not represented by the key. Expiration is optional and expressed with `--ttl-seconds` on `put`.
+
 ## Standard workflow
 
 1. Read this guide and the manifest when adopting or updating suite tooling.
 2. For substantial changes, generate and inspect a fresh context packet. For a small, obvious edit, skip context generation if its output would add no useful evidence.
 3. Inspect relevant source, project instructions, tests, and conventions directly. When the task remains broad or has meaningful scope/acceptance ambiguity, complete and validate a work-order input, generate both outputs, and review the contract. Ask the user about missing requirements; never fabricate criteria. Decide which verification checks apply; configure project-specific commands rather than assuming this suite's own tests validate the target project.
 4. Implement only the requested scope and valid work-order contract. Rebuild context if source changes make the packet stale or materially alter retrieval.
-5. Run the target project's checks and the verification runner when configured. After the last source edit, rerun final checks.
-6. Report what changed, exact checks and outcomes, freshness limitations, and unresolved issues. Never convert a failed, skipped, or unavailable check into a pass claim.
+5. When equivalent failures repeat, consult the No-Progress Circuit Breaker; honor `STOP` by changing evidence/approach or stopping, not by cosmetically rewording a retry. Reuse prior outputs only through Snapshot-Aware Cache Reuse and only on an exact `HIT`; otherwise recompute.
+6. Run the target project's checks and the verification runner when configured. After the last source edit, rerun final checks.
+7. Report what changed, exact checks and outcomes, freshness limitations, and unresolved issues. Never convert a failed, skipped, or unavailable check into a pass claim.
 
 Standard substantial-task sequence: fresh context packet → validated work order (when scope warrants it) → implementation within its constraints/non-goals/stop condition → final verification.
 
