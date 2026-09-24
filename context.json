@@ -1,0 +1,6 @@
+{
+  "include": [],
+  "exclude": ["upload/**", ".context-packets/**", "context-packet.*"],
+  "important_files": [],
+  "max_files": 80
+}
