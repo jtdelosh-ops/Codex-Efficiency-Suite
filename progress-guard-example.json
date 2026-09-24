@@ -1,0 +1,7 @@
+{
+  "threshold": 3,
+  "attempts": [
+    {"signature": "test:timeout:api-suite", "summary": "Test timed out after 30 seconds", "evidence_id": "run-001", "approach_id": "baseline"},
+    {"signature": "test:timeout:api-suite", "summary": "Same timeout, wording differs", "evidence_id": "run-002", "approach_id": "baseline"}
+  ]
+}
