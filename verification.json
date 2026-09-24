@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "default": {
+      "command": ["python3", "-m", "unittest", "discover", "-v"],
+      "timeout_seconds": 120,
+      "environment": [],
+      "dependency_files": []
+    }
+  }
+}
