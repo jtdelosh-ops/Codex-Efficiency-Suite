@@ -1,8 +1,41 @@
 # Codex Efficiency Suite
 
-The current suite provides a deterministic verification runner, a lightweight repository context builder, and an experimental Work-Order Builder. See [suite-manifest.json](suite-manifest.json) for tool status/contracts and [CODEX-SUITE-GUIDE.md](CODEX-SUITE-GUIDE.md) for direct Codex usage instructions.
+For cross-platform JSON command configurations, use the portable `{python}` token. The runner and preflight resolve it to the active Python interpreter (`sys.executable`), avoiding Windows Store `python3` aliases. When launching the suite itself from a shell, use the interpreter available on that platform.
 
-## Work-Order Builder (experimental)
+The suite provides a deterministic Verification Runner, Repository Context Builder, Work-Order Builder, Environment Preflight, Failure History Keeper, and Session Handoff Builder. See [suite-manifest.json](suite-manifest.json) for each tool's status and contract, and [CODEX-SUITE-GUIDE.md](CODEX-SUITE-GUIDE.md) for when and how Codex should use them. All are local, dependency-free tools; none calls a model or network service.
+
+## Environment Preflight
+
+Check prerequisites declared in `preflight.json` before implementation:
+
+```sh
+python3 preflight.py --root . --config preflight.json
+```
+
+It reports PASS/FAIL/ERROR as JSON and Markdown. Environment values are never exposed; optional checks run without a shell under a bounded timeout.
+
+## Failure History Keeper
+
+Append concise outcomes and query bounded recent history:
+
+```sh
+python3 failure_history.py append --input failure-history-example.json --store .failure-history/events.jsonl --deduplicate
+python3 failure_history.py query --store .failure-history/events.jsonl --limit 20
+```
+
+Only normalized bounded summaries are stored; arbitrary payloads and logs are omitted. Review local summaries before sharing.
+
+## Session Handoff Builder
+
+Render structured session state into a bounded handoff:
+
+```sh
+python3 session_handoff.py --input session-handoff-example.json
+```
+
+The required fields and output limits are documented in [CODEX-SUITE-GUIDE.md](CODEX-SUITE-GUIDE.md). Blockers and failed/unknown checks are preserved; completion is never inferred.
+
+## Work-Order Builder (stable)
 
 Validate a complete structured task brief and render JSON and Markdown without inventing requirements:
 
@@ -46,7 +79,7 @@ Exit codes are `0` for `PASS`, `1` for `FAIL`, `2` for `TIMEOUT`, and `3` for se
 {
   "profiles": {
     "default": {
-      "command": ["python3", "-m", "unittest", "discover", "-v"],
+      "command": ["{python}", "-m", "unittest", "discover", "-v"],
       "timeout_seconds": 120,
       "environment": [],
       "dependency_files": ["requirements.lock"]
