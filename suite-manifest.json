@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "suite": {
+    "name": "Codex Efficiency Suite",
+    "version": "0.1.0",
+    "stability": "early",
+    "purpose": "Reusable deterministic tools that reduce repeated agent work and improve verification."
+  },
+  "adoption_policy": {
+    "source_of_truth": "This manifest defines the tools Codex should consider for project work.",
+    "default_behavior": "Use every applicable tool marked stable unless the project or task explicitly excludes it.",
+    "experimental_behavior": "Do not use experimental tools unless explicitly requested or the task is tool development.",
+    "project_configuration": "Keep project-specific configuration local to each project and preserve existing conventions.",
+    "update_rule": "Every new tool must be registered here before it is considered stable and broadly adoptable."
+  },
+  "tools": [
+    {
+      "id": "verification-runner",
+      "name": "Reproduction and Verification Runner",
+      "version": "0.1.0",
+      "status": "stable",
+      "purpose": "Run an explicit verification command, preserve complete diagnostics, classify the result, and reject stale or changed-source evidence.",
+      "entrypoint": "python3 verify.py --root . --config verification.json --profile default",
+      "configuration": "verification.json",
+      "project_integration": [
+        "Add a project-specific verification.json.",
+        "Use the project's existing deterministic test or verification command.",
+        "Add .verification-runs/ to .gitignore.",
+        "Run after implementation changes and again before declaring completion."
+      ],
+      "outputs": [
+        ".verification-runs/<run-id>/report.json",
+        ".verification-runs/<run-id>/report.md",
+        ".verification-runs/<run-id>/stdout.log",
+        ".verification-runs/<run-id>/stderr.log"
+      ],
+      "acceptance": "Only PASS is successful. FAIL, TIMEOUT, and ERROR require investigation or explicit reporting.",
+      "requires": {
+        "runtime": "Python 3",
+        "dependencies": "None"
+      }
+    }
+  ],
+  "tool_registration_schema": {
+    "required_fields": [
+      "id",
+      "name",
+      "version",
+      "status",
+      "purpose",
+      "entrypoint",
+      "project_integration",
+      "acceptance",
+      "requires"
+    ],
+    "allowed_statuses": [
+      "experimental",
+      "stable",
+      "deprecated"
+    ]
+  }
+}
