@@ -27,6 +27,19 @@
       "outputs": ["context-packet.json", "context-packet.md"],
       "freshness": "SHA-256 over eligible path/content pairs before and after collection; method identifies Git or content-snapshot fallback; fresh=false invalidates the packet",
       "acceptance": "python3 -m unittest discover -v; tests cover Git and fallback snapshots, patterns, evidence, test discovery, output, invalid config, and stale detection"
+    },
+    {
+      "id": "work-order-builder",
+      "name": "Work-Order Builder",
+      "purpose": "Validate a structured task brief and render a bounded, deterministic implementation contract without inventing missing requirements.",
+      "status": "experimental",
+      "entrypoint": "work_order.py",
+      "invocation": "python3 work_order.py --input work-order.json --json-out .work-orders/work-order.json --markdown-out .work-orders/work-order.md",
+      "applicable_projects": ["projects where a broad task benefits from explicit scope and acceptance criteria"],
+      "configuration": "JSON input with all ten required fields; see work-order.json",
+      "outputs": ["machine-readable JSON work order", "human-readable Markdown work order"],
+      "safety_boundaries": "Rejects missing, malformed, or empty required values; preserves constraints, non-goals, stop condition, and escalation evidence; makes no model or network calls.",
+      "acceptance": "python3 -m unittest discover -v; stable status is contingent on all acceptance tests passing"
     }
   ],
   "future_tool_policy": "Update this manifest, guide, and relevant tests in the same change as every new tool. Mark stable only after acceptance tests pass; otherwise use experimental."
