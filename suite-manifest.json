@@ -32,14 +32,53 @@
       "id": "work-order-builder",
       "name": "Work-Order Builder",
       "purpose": "Validate a structured task brief and render a bounded, deterministic implementation contract without inventing missing requirements.",
-      "status": "experimental",
+      "status": "stable",
       "entrypoint": "work_order.py",
       "invocation": "python3 work_order.py --input work-order.json --json-out .work-orders/work-order.json --markdown-out .work-orders/work-order.md",
       "applicable_projects": ["projects where a broad task benefits from explicit scope and acceptance criteria"],
       "configuration": "JSON input with all ten required fields; see work-order.json",
       "outputs": ["machine-readable JSON work order", "human-readable Markdown work order"],
       "safety_boundaries": "Rejects missing, malformed, or empty required values; preserves constraints, non-goals, stop condition, and escalation evidence; makes no model or network calls.",
-      "acceptance": "python3 -m unittest discover -v; stable status is contingent on all acceptance tests passing"
+      "acceptance": "python3 -m unittest discover -v; tests cover valid JSON/Markdown rendering, required-field rejection, malformed values/input, verbatim constraints/non-goals/stop condition, and both CLI output files"
+    },
+    {
+      "id": "environment-preflight",
+      "name": "Environment Preflight",
+      "purpose": "Check declared executables, Python version constraints, required paths, environment-variable presence, and optional bounded commands before implementation.",
+      "status": "stable",
+      "entrypoint": "preflight.py",
+      "invocation": "python3 preflight.py --root PROJECT --config preflight.json",
+      "applicable_projects": ["projects with explicit local runtime, path, or environment prerequisites"],
+      "configuration": "preflight.json; requirements only, executable argument arrays, and bounded command timeouts",
+      "outputs": ["concise JSON stdout and report", "Markdown report"],
+      "safety_freshness_limits": "No shell invocation or network access; environment values are never read into output; optional commands have a maximum 30-second timeout; only Python runtime constraints are supported.",
+      "acceptance": "test_preflight.py covers missing requirements, version constraints, environment presence without values, failing commands, malformed config, and output files"
+    },
+    {
+      "id": "failure-history-keeper",
+      "name": "Failure History Keeper",
+      "purpose": "Append normalized local failure/status summaries and query bounded recent records by tool, status, or stable signature.",
+      "status": "stable",
+      "entrypoint": "failure_history.py",
+      "invocation": "python3 failure_history.py append --input EVENTS.json --store .failure-history/events.jsonl; python3 failure_history.py query --store .failure-history/events.jsonl --limit 20",
+      "applicable_projects": ["projects that benefit from a small local record of concise tool outcomes and recurring failures"],
+      "configuration": "JSON event object or array with tool, status, summary, and optional signature, timestamp, source",
+      "outputs": ["JSONL event store", "bounded JSON or Markdown query summary"],
+      "safety_freshness_limits": "Stores allowlisted fields only, bounds text and event count, redacts common secret assignments, discards arbitrary payload/log fields, and makes no network/database calls. Local store may contain sensitive summaries and should be reviewed before sharing.",
+      "acceptance": "test_failure_history.py covers append, filter query, stable signatures/deduplication, redaction and payload exclusion, malformed input/store, bounded results, and CLI"
+    },
+    {
+      "id": "session-handoff-builder",
+      "name": "Session Handoff Builder",
+      "purpose": "Render explicit structured session state into compact JSON and Markdown for a human-reviewed continuation.",
+      "status": "stable",
+      "entrypoint": "session_handoff.py",
+      "invocation": "python3 session_handoff.py --input session-state.json",
+      "applicable_projects": ["long-running or interrupted tasks that need a concise continuation packet"],
+      "configuration": "JSON input containing goal, completed_work, changed_files, verification_results, blockers, unresolved_issues, decisions, and next_action",
+      "outputs": [".session-handoff/handoff.json", ".session-handoff/handoff.md"],
+      "safety_freshness_limits": "Bounds each text field and array, preserves blockers, marks failed/unknown verification as blocked, and explicitly avoids asserting completion. Handoff evidence can become stale and must be checked against the working tree.",
+      "acceptance": "test_session_handoff.py covers valid output, missing fields, failed verification/blocker preservation, bounded/truncated evidence, and CLI files"
     }
   ],
   "future_tool_policy": "Update this manifest, guide, and relevant tests in the same change as every new tool. Mark stable only after acceptance tests pass; otherwise use experimental."
