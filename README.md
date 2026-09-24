@@ -1,6 +1,16 @@
 # Codex Efficiency Suite
 
-The current suite provides a deterministic verification runner and a lightweight repository context builder. See [suite-manifest.json](suite-manifest.json) for tool status/contracts and [CODEX-SUITE-GUIDE.md](CODEX-SUITE-GUIDE.md) for direct Codex usage instructions.
+The current suite provides a deterministic verification runner, a lightweight repository context builder, and an experimental Work-Order Builder. See [suite-manifest.json](suite-manifest.json) for tool status/contracts and [CODEX-SUITE-GUIDE.md](CODEX-SUITE-GUIDE.md) for direct Codex usage instructions.
+
+## Work-Order Builder (experimental)
+
+Validate a complete structured task brief and render JSON and Markdown without inventing requirements:
+
+```sh
+python3 work_order.py --input work-order.json --json-out .work-orders/work-order.json --markdown-out .work-orders/work-order.md
+```
+
+All required fields must be supplied; see `work-order.json` for an example. Review both generated outputs before implementation.
 
 ## Repository Context Builder
 
