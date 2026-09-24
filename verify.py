@@ -20,6 +20,7 @@ from typing import Any
 
 VERSION = "0.1.0"
 EXIT_CODES = {"PASS": 0, "FAIL": 1, "TIMEOUT": 2, "ERROR": 3}
+PYTHON_TOKEN = "{python}"
 
 
 class RunnerError(Exception):
@@ -28,6 +29,11 @@ class RunnerError(Exception):
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def resolve_command(command: list[str]) -> list[str]:
+    """Resolve portable command tokens without invoking a shell."""
+    return [sys.executable if part == PYTHON_TOKEN else part for part in command]
 
 
 def load_config(path: Path, profile: str) -> tuple[dict[str, Any], bytes]:
@@ -188,15 +194,16 @@ def run(root: Path, config_path: Path, profile: str, report_dir: Path) -> tuple[
         except ValueError as exc:
             raise RunnerError("Configuration file must be inside the repository root.") from exc
         config, config_bytes = load_config(cfg_path, profile)
-        result["command"] = config["command"]
+        command = resolve_command(config["command"])
+        result["command"] = command
         result["snapshot"] = source_snapshot(root, report_dir)
         result["environment_fingerprint"] = environment_fingerprint(
-            root, config, config_bytes, config["command"])
+            root, config, config_bytes, command)
         (run_dir / "stdout.log").write_bytes(b"")
         (run_dir / "stderr.log").write_bytes(b"")
         try:
             completed = subprocess.run(
-                config["command"], cwd=root, stdout=subprocess.PIPE,
+                command, cwd=root, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, timeout=config["timeout_seconds"],
                 check=False, shell=False,
             )
