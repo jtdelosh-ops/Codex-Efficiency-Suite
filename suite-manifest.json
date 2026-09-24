@@ -90,7 +90,7 @@
       "applicable_projects": ["tasks where repeated equivalent failed attempts risk wasting effort"],
       "configuration": "JSON input with attempts, stable signature per attempt, optional evidence_id/approach_id, and optional threshold (default 3); --threshold overrides it",
       "outputs": ["bounded JSON decision", "concise Markdown decision"],
-      "safety_freshness_limits": "Only changed explicit evidence_id or approach_id counts as new; changed summary text is ignored. Uses local supplied history only and does not infer semantic novelty or autonomously escalate.",
+      "safety_freshness_limits": "Only changed explicit evidence_id or approach_id counts as new; changed summary text is ignored. Identifiers are compared in full and oversized identifiers are rejected. Uses local supplied history only and does not infer semantic novelty or autonomously escalate.",
       "acceptance": "test_progress_guard.py covers first failure, repeated signature despite text changes, new evidence/approach, configurable threshold, malformed input, and bounded history/output"
     },
     {
@@ -103,7 +103,7 @@
       "applicable_projects": ["tools with deterministic, safely reusable outputs and explicit complete input fingerprints"],
       "configuration": "JSON object with key.tool, key.source, key.configuration, key.environment, key.dependencies and JSON value; input fields must be opaque fingerprints, never raw secret values",
       "outputs": ["bounded HIT/MISS JSON", "bounded metadata query"],
-      "safety_freshness_limits": "1000 records maximum; result strings/lists are bounded; secret-like fields and common secret assignments are rejected. Caller is responsible for complete fingerprints and safe values. Expiry is optional; no logs or raw environment values are collected.",
+      "safety_freshness_limits": "1000 records maximum; oversized result strings/lists are rejected; secret-like fields and common secret assignments are rejected. Caller is responsible for complete fingerprints and safe values. Expiry is optional; no logs or raw environment values are collected.",
       "acceptance": "test_result_cache.py covers hit, missing key, source/config/environment/dependency changes, expiry, record/output bounds, malformed input/store, deterministic serialization, and secret leakage prevention"
     }
   ],
