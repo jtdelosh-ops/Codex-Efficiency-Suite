@@ -28,14 +28,26 @@ python3 /path/to/Codex-Efficiency-Suite/verify.py --root . --config verification
 
 Treat only exit code 0 and report status `PASS` as success. Investigate `FAIL`, `TIMEOUT`, and `ERROR`; inspect the report and preserved stdout/stderr. Do not claim completion on the basis of an old run. The runner fingerprints project files, configuration, declared environment names, and declared dependency files; it is not a substitute for a clean isolated build.
 
+### Work-Order Builder (`work_order.py`) — experimental
+
+Use when a request is broad enough that scope, acceptance, or stop conditions could otherwise be ambiguous. First gather task context (typically with the Repository Context Builder), then complete every field in `work-order.json` or another JSON brief. Do not use placeholder acceptance criteria: clarify missing requirements with the user rather than inventing them. Generate the work order with:
+
+```sh
+python3 /path/to/Codex-Efficiency-Suite/work_order.py --input work-order.json --json-out .work-orders/work-order.json --markdown-out .work-orders/work-order.md
+```
+
+Review both outputs before implementation. Treat JSON as the machine-readable contract and Markdown as its readable rendering. Preserve constraints, non-goals, and stop condition; follow the acceptance criteria and required verification. If validation fails, fix the input rather than weakening validation. This tool only validates and formats supplied content; it does not plan autonomously, call a model, or expand scope.
+
 ## Standard workflow
 
 1. Read this guide and the manifest when adopting or updating suite tooling.
 2. For substantial changes, generate and inspect a fresh context packet. For a small, obvious edit, skip context generation if its output would add no useful evidence.
-3. Inspect relevant source, project instructions, tests, and conventions directly. Decide which verification checks apply; configure project-specific commands rather than assuming this suite's own tests validate the target project.
-4. Implement only the requested scope. Rebuild context if source changes make the packet stale or materially alter retrieval.
+3. Inspect relevant source, project instructions, tests, and conventions directly. When the task remains broad or has meaningful scope/acceptance ambiguity, complete and validate a work-order input, generate both outputs, and review the contract. Ask the user about missing requirements; never fabricate criteria. Decide which verification checks apply; configure project-specific commands rather than assuming this suite's own tests validate the target project.
+4. Implement only the requested scope and valid work-order contract. Rebuild context if source changes make the packet stale or materially alter retrieval.
 5. Run the target project's checks and the verification runner when configured. After the last source edit, rerun final checks.
 6. Report what changed, exact checks and outcomes, freshness limitations, and unresolved issues. Never convert a failed, skipped, or unavailable check into a pass claim.
+
+Standard substantial-task sequence: fresh context packet → validated work order (when scope warrants it) → implementation within its constraints/non-goals/stop condition → final verification.
 
 ## Adding future tools
 
