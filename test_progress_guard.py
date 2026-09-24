@@ -16,7 +16,9 @@ class ProgressGuardTests(unittest.TestCase):
     def test_new_evidence_or_approach_continues(self):
         rows = [{"signature": "x", "evidence_id": "a", "approach_id": "one"},
                 {"signature": "x", "evidence_id": "b", "approach_id": "one"}]
-        self.assertEqual(decide({"attempts": rows})["decision"], "CONTINUE")
+        result = decide({"attempts": rows})
+        self.assertEqual(result["decision"], "CONTINUE")
+        self.assertEqual(len(result["matched_history"]), 1)
         rows[1] = {"signature": "x", "evidence_id": "a", "approach_id": "two"}
         self.assertEqual(decide({"attempts": rows})["decision"], "CONTINUE")
 
@@ -32,6 +34,19 @@ class ProgressGuardTests(unittest.TestCase):
         self.assertEqual(len(result["matched_history"]), 4)
         self.assertLessEqual(len(result["matched_history"][0]["summary"]), 500)
         with self.assertRaises(GuardError): decide({"attempts": [{"signature": "x"}] * 101})
+
+    def test_long_identifiers_are_compared_in_full(self):
+        first = "e" * 600 + "a"
+        second = "e" * 600 + "b"
+        rows = [{"signature": "x", "evidence_id": first},
+                {"signature": "x", "evidence_id": second}]
+        result = decide({"attempts": rows}, threshold=2)
+        self.assertEqual(result["decision"], "CONTINUE")
+        self.assertEqual(result["matched_history"], [{"signature": "x", "evidence_id": second}])
+
+    def test_oversized_identifier_is_rejected(self):
+        with self.assertRaises(GuardError):
+            decide({"attempts": [{"signature": "x", "evidence_id": "e" * 1025}]})
 
 
 if __name__ == "__main__": unittest.main()
