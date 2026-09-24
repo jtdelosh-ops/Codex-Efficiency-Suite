@@ -39,6 +39,12 @@ class VerificationRunnerTests(unittest.TestCase):
         self.assertTrue((directory / "report.json").is_file())
         self.assertTrue((directory / "report.md").is_file())
 
+    def test_python_token_uses_active_interpreter(self):
+        self.configure(["{python}", "-c", "import sys; print(sys.executable)"])
+        result, _ = self.invoke()
+        self.assertEqual("PASS", result["status"])
+        self.assertEqual(sys.executable, result["command"][0])
+
     def test_nonzero_exit_is_failure_and_stderr_is_preserved(self):
         self.configure([sys.executable, "-c", "import sys; print('bad', file=sys.stderr); sys.exit(7)"])
         result, directory = self.invoke()
