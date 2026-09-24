@@ -1,4 +1,18 @@
-# Local verification runner MVP
+# Codex Efficiency Suite
+
+The current suite provides a deterministic verification runner and a lightweight repository context builder. See [suite-manifest.json](suite-manifest.json) for tool status/contracts and [CODEX-SUITE-GUIDE.md](CODEX-SUITE-GUIDE.md) for direct Codex usage instructions.
+
+## Repository Context Builder
+
+Build task-specific context from direct file evidence, with a snapshot fingerprint:
+
+```sh
+python3 context.py --root . --config context.json --task "describe the task"
+```
+
+It writes `.context-packets/context-packet.json` and `.context-packets/context-packet.md`. Configure include/exclude patterns and important filenames in `context.json`. Git mode lists tracked working-tree changes and untracked files; deleted tracked paths are reported separately without source evidence. Outside Git it explicitly falls back to listing eligible files under a content snapshot. The packet is marked stale if eligible inputs change during collection.
+
+## Verification runner
 
 This small, deterministic runner executes one explicitly configured command, preserves its full stdout/stderr, and emits JSON plus a concise Markdown report. It has no third-party dependencies and does not use a model to interpret exit status.
 
