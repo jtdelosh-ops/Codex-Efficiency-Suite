@@ -51,6 +51,27 @@ class ContextBuilderTests(unittest.TestCase):
         self.assertEqual("git", packet["snapshot"]["method"])
         self.assertEqual(["app.py", "new.py"], packet["changed_files"])
 
+    def test_git_snapshot_skips_ignored_build_and_suite_reports(self):
+        self.write(".gitignore", "generated/\n")
+        self.write("app.py", "pass\n")
+        subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
+        subprocess.run(["git", "add", "app.py", ".gitignore", "context.json"],
+                       cwd=self.root, check=True)
+        before = context.snapshot(self.root, self.config())[0]
+        self.write("generated/output.bin", "binary")
+        self.write(".context-packets/old.json", "old report")
+        self.write(".verification-runs/old/report.json", "old verification")
+        after = context.snapshot(self.root, self.config())[0]
+        self.assertEqual(before, after)
+        self.write("new.py", "new source")
+        self.assertNotEqual(before, context.snapshot(self.root, self.config())[0])
+
+    def test_fallback_skips_generated_outputs(self):
+        before = context.snapshot(self.root, self.config())[0]
+        self.write("build/output.bin", "binary")
+        self.write(".context-packets/old.json", "old report")
+        self.assertEqual(before, context.snapshot(self.root, self.config())[0])
+
     def test_git_deletion_is_reported_without_claiming_file_evidence(self):
         self.write("gone.py", "pass\n")
         subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)

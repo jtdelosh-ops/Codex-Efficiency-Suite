@@ -18,7 +18,7 @@ Use at the start of a substantial code change, when entering an unfamiliar repos
 python3 /path/to/Codex-Efficiency-Suite/context.py --root . --config /path/to/Codex-Efficiency-Suite/context.json --task "implement the requested behavior"
 ```
 
-Inspect both the Markdown packet and JSON evidence. Follow exact paths and line numbers into source; do not treat search hits or naming-based test matches as exhaustive. Git mode identifies tracked working-tree changes (staged or unstaged) and untracked files relative to HEAD, not a task-specific baseline. If Git is unavailable, `changed_files` means all eligible snapshot files and the packet labels the method `content-snapshot`; never describe that list as a diff. Review exclusions before trusting coverage, and never broaden them to include secrets. Regenerate the packet after relevant source/config changes. A packet with `fresh: false` is stale and must not be used as current context.
+Inspect both the Markdown packet and JSON evidence. Follow exact paths and line numbers into source; do not treat search hits or naming-based test matches as exhaustive. Git mode identifies tracked working-tree changes (staged or unstaged) and nonignored untracked files relative to HEAD, not a task-specific baseline. Its snapshot also uses tracked and nonignored untracked files. If Git is unavailable, `changed_files` means all eligible files from a pruned filesystem scan and the packet labels the method `content-snapshot`; never describe that list as a diff. Common generated directories and suite report directories are omitted in both modes. Review exclusions before trusting coverage, and never broaden them to include secrets. Regenerate the packet after relevant source/config changes. A packet with `fresh: false` is stale and must not be used as current context.
 
 ### Verification Runner (`verify.py`) — stable
 
@@ -28,7 +28,7 @@ Use after implementation changes and again after the final edit, when the target
 python3 /path/to/Codex-Efficiency-Suite/verify.py --root . --config verification.json --profile default
 ```
 
-Treat only exit code 0 and report status `PASS` as success. Investigate `FAIL`, `TIMEOUT`, and `ERROR`; inspect the report and preserved stdout/stderr. Do not claim completion on the basis of an old run. The runner fingerprints project files, configuration, declared environment names, and declared dependency files; it is not a substitute for a clean isolated build.
+Treat only exit code 0 and report status `PASS` as success. Investigate `FAIL`, `TIMEOUT`, and `ERROR`; inspect the report and preserved stdout/stderr. Do not claim completion on the basis of an old run. The runner fingerprints tracked and nonignored untracked project files in Git worktrees, or eligible files from a pruned scan outside Git. Common generated directories, suite report directories, and optional profile `snapshot_exclude` patterns are omitted. Review exclusions so inputs relevant to the check remain covered. Configuration, declared environment names, and declared dependency files are fingerprinted separately; the runner is not a substitute for a clean isolated build.
 
 ### Work-Order Builder (`work_order.py`) — stable
 

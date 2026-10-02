@@ -13,7 +13,8 @@
       "applicable_projects": ["projects with an explicit safe verification command"],
       "configuration": "verification.json",
       "outputs": ["JSON report", "Markdown report", "stdout log", "stderr log"],
-      "acceptance": "python3 -m unittest discover -v; PASS requires exit code zero and unchanged source snapshot"
+      "freshness": "SHA-256 over tracked and nonignored untracked files in Git, or a pruned filesystem scan outside Git; common generated and suite report directories plus optional profile snapshot_exclude globs are omitted; PASS requires unchanged eligible inputs",
+      "acceptance": "python3 -m unittest discover -v; tests cover generated-output/report exclusion, source-change invalidation, and Git/non-Git scope"
     },
     {
       "id": "repository-context-builder",
@@ -25,7 +26,7 @@
       "applicable_projects": ["source repositories where focused file/test discovery is useful"],
       "configuration": "context.json; include/exclude glob patterns, important filenames, max_files",
       "outputs": ["context-packet.json", "context-packet.md"],
-      "freshness": "SHA-256 over eligible path/content pairs before and after collection; method identifies Git or content-snapshot fallback; fresh=false invalidates the packet",
+      "freshness": "SHA-256 over tracked and nonignored untracked eligible files in Git, or a pruned filesystem scan outside Git; common generated and suite report directories are omitted; fresh=false invalidates the packet",
       "acceptance": "python3 -m unittest discover -v; tests cover Git and fallback snapshots, patterns, evidence, test discovery, output, invalid config, and stale detection"
     },
     {

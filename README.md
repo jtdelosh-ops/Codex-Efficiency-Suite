@@ -71,7 +71,7 @@ Build task-specific context from direct file evidence, with a snapshot fingerpri
 python3 context.py --root . --config context.json --task "describe the task"
 ```
 
-It writes `.context-packets/context-packet.json` and `.context-packets/context-packet.md`. Configure include/exclude patterns and important filenames in `context.json`. Git mode lists tracked working-tree changes and untracked files; deleted tracked paths are reported separately without source evidence. Outside Git it explicitly falls back to listing eligible files under a content snapshot. The packet is marked stale if eligible inputs change during collection.
+It writes `.context-packets/context-packet.json` and `.context-packets/context-packet.md`. Configure include/exclude patterns and important filenames in `context.json`. In Git worktrees, the snapshot covers tracked and nonignored untracked files; Git mode lists tracked working-tree changes and nonignored untracked files, with deleted tracked paths reported separately without source evidence. Outside Git it falls back to a pruned filesystem scan. Common generated directories and suite report directories are excluded in both modes. The packet is marked stale if eligible inputs change during collection.
 
 ## Verification runner
 
@@ -85,9 +85,9 @@ From the project root:
 python3 verify.py --root . --config verification.json --profile default
 ```
 
-Edit `verification.json` to define the command as an argument array (never shell text), a positive timeout in seconds, environment variable names relevant to the check, and dependency/lock files whose bytes should be fingerprinted. Commands run with the repository root as their working directory and inherit the current environment. Declared environment values are hashed, never copied into reports. Required declared dependency files must exist. Keep the command explicit and safe for local execution.
+Edit `verification.json` to define the command as an argument array (never shell text), a positive timeout in seconds, environment variable names relevant to the check, and dependency/lock files whose bytes should be fingerprinted. Optional `snapshot_exclude` glob patterns can omit project-specific generated output. Commands run with the repository root as their working directory and inherit the current environment. Declared environment values are hashed, never copied into reports. Required declared dependency files must exist. Keep the command explicit and safe for local execution.
 
-Each invocation creates a unique directory under `.verification-runs/` containing `report.json`, `report.md`, `stdout.log`, and `stderr.log`. Retain this directory as local evidence; logs can contain sensitive output, so do not publish them without review. The report includes repository path, Git HEAD when available, a content hash covering tracked, modified, and untracked files, command/configuration and environment/dependency fingerprints, exit status, complete log paths, and bounded diagnostic excerpts. Report output itself is excluded from the source fingerprint.
+Each invocation creates a unique directory under `.verification-runs/` containing `report.json`, `report.md`, `stdout.log`, and `stderr.log`. Retain this directory as local evidence; logs can contain sensitive output, so do not publish them without review. The report includes repository path, Git HEAD when available, a content hash and method, command/configuration and environment/dependency fingerprints, exit status, complete log paths, and bounded diagnostic excerpts. In a Git worktree the source hash covers tracked files and nonignored untracked files. Outside Git it covers files from a pruned filesystem scan. Common generated directories (such as `build`, `dist`, `target`, and `node_modules`), suite report directories, the selected report directory, and configured `snapshot_exclude` patterns are omitted. Add a project-specific pattern when output uses another location; do not exclude source inputs that affect the check.
 
 Exit codes are `0` for `PASS`, `1` for `FAIL`, `2` for `TIMEOUT`, and `3` for setup/execution `ERROR`. A nonzero command exit is always a failure; missing/invalid configuration, missing declared inputs, unavailable commands, incomplete log collection, or a changed source tree invalidate success. Do not reuse old results as current: compare the report's source and environment fingerprints with the candidate being assessed, and rerun final acceptance checks on the final candidate. The MVP deliberately does not cache results or claim immutable-snapshot isolation.
 
@@ -100,7 +100,8 @@ Exit codes are `0` for `PASS`, `1` for `FAIL`, `2` for `TIMEOUT`, and `3` for se
       "command": ["{python}", "-m", "unittest", "discover", "-v"],
       "timeout_seconds": 120,
       "environment": [],
-      "dependency_files": ["requirements.lock"]
+      "dependency_files": ["requirements.lock"],
+      "snapshot_exclude": ["scratch-results/**"]
     }
   }
 }

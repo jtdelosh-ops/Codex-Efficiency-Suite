@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -19,11 +20,12 @@ class VerificationRunnerTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def configure(self, command, timeout=2, dependencies=None):
+    def configure(self, command, timeout=2, dependencies=None, snapshot_exclude=None):
         self.config.write_text(json.dumps({"profiles": {"default": {
             "command": command, "timeout_seconds": timeout,
             "environment": ["VERIFY_TEST_INPUT"],
             "dependency_files": dependencies or [],
+            "snapshot_exclude": snapshot_exclude or [],
         }}}))
 
     def invoke(self):
@@ -91,6 +93,57 @@ class VerificationRunnerTests(unittest.TestCase):
         (self.root / "new-untracked.txt").write_text("new\n")
         after = verify.source_snapshot(self.root, self.reports)
         self.assertNotEqual(before["tree_sha256"], after["tree_sha256"])
+
+    def test_non_git_snapshot_ignores_generated_outputs(self):
+        before = verify.source_snapshot(self.root, self.reports)
+        for name in ("build/app.bin", "companion/target/debug/app.exe",
+                     ".context-packets/old.json", ".failure-history/old.jsonl",
+                     ".verification-runs/old/report.json"):
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("generated")
+        after = verify.source_snapshot(self.root, self.reports)
+        self.assertEqual("filesystem", after["method"])
+        self.assertEqual(before["tree_sha256"], after["tree_sha256"])
+
+    def test_git_snapshot_respects_ignore_and_keeps_source_changes(self):
+        (self.root / ".gitignore").write_text("generated/\n")
+        subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
+        subprocess.run(["git", "add", "tracked.txt", ".gitignore"], cwd=self.root, check=True)
+        (self.root / "new-source.py").write_text("initial\n")
+        baseline = verify.source_snapshot(self.root, self.reports)
+        for name in ("generated/result.bin", ".context-packets/old.json",
+                     ".verification-runs/old/report.json"):
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("old output")
+        self.assertEqual("git", baseline["method"])
+        self.assertEqual(baseline["tree_sha256"],
+                         verify.source_snapshot(self.root, self.reports)["tree_sha256"])
+        (self.root / "new-source.py").write_text("changed\n")
+        self.assertNotEqual(baseline["tree_sha256"],
+                            verify.source_snapshot(self.root, self.reports)["tree_sha256"])
+        (self.root / "tracked.txt").unlink()
+        self.assertNotEqual(baseline["tree_sha256"],
+                            verify.source_snapshot(self.root, self.reports)["tree_sha256"])
+
+    def test_generated_output_during_check_does_not_invalidate_pass(self):
+        script = ("from pathlib import Path; "
+                  "Path('build').mkdir(); Path('build/output.bin').write_bytes(b'x'); "
+                  "Path('.context-packets').mkdir(); "
+                  "Path('.context-packets/old.json').write_text('new report')")
+        self.configure([sys.executable, "-c", script])
+        result, _ = self.invoke()
+        self.assertEqual("PASS", result["status"])
+        self.assertFalse(result["snapshot_changed"])
+
+    def test_profile_excludes_project_specific_outputs(self):
+        script = ("from pathlib import Path; "
+                  "Path('scratch').mkdir(); Path('scratch/result.dat').write_text('generated')")
+        self.configure([sys.executable, "-c", script], snapshot_exclude=["scratch/**"])
+        result, _ = self.invoke()
+        self.assertEqual("PASS", result["status"])
+        self.assertFalse(result["snapshot_changed"])
 
     def test_config_must_be_within_repository(self):
         outside = self.root.parent / "outside-verification-config.json"
