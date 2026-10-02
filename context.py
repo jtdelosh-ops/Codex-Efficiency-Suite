@@ -14,7 +14,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-VERSION = "0.1.0"
+from source_scope import ScopeError, excluded, source_paths
+
+VERSION = "0.2.0"
 DEFAULT_EXCLUDES = [".git/**", ".verification-runs/**", ".context-packets/**", "__pycache__/**",
                     "**/__pycache__/**", ".env", ".env.*", "**/.env", "**/.env.*",
                     "*.pyc", "**/*.pyc", "*.pem", "**/*.pem", "*.p12", "**/*.p12",
@@ -79,14 +81,18 @@ def matches(path: str, pattern: str) -> bool:
 
 
 def eligible(rel: str, cfg: dict[str, Any]) -> bool:
-    if any(matches(rel, p) for p in cfg["exclude"]):
+    if excluded(rel, tuple(cfg["exclude"])):
         return False
     return not cfg["include"] or any(matches(rel, p) for p in cfg["include"])
 
 
 def snapshot(root: Path, cfg: dict[str, Any]) -> tuple[str, dict[str, str]]:
     records: dict[str, str] = {}
-    for path in sorted(root.rglob("*"), key=lambda p: p.as_posix()):
+    try:
+        _, paths = source_paths(root, tuple(cfg["exclude"]))
+    except ScopeError as exc:
+        raise ContextError(str(exc)) from exc
+    for path in paths:
         rel = path.relative_to(root).as_posix()
         if not eligible(rel, cfg) or not path.is_file() or path.is_symlink():
             continue

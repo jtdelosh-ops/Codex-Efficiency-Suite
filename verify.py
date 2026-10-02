@@ -17,8 +17,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from source_scope import ScopeError, source_paths
 
-VERSION = "0.1.0"
+
+VERSION = "0.2.0"
 EXIT_CODES = {"PASS": 0, "FAIL": 1, "TIMEOUT": 2, "ERROR": 3}
 PYTHON_TOKEN = "{python}"
 
@@ -51,6 +53,7 @@ def load_config(path: Path, profile: str) -> tuple[dict[str, Any], bytes]:
     timeout = selected.get("timeout_seconds")
     env_names = selected.get("environment", [])
     dependency_files = selected.get("dependency_files", [])
+    snapshot_exclude = selected.get("snapshot_exclude", [])
     if (not isinstance(command, list) or not command or
             not all(isinstance(part, str) and part for part in command)):
         raise RunnerError("Profile 'command' must be a non-empty array of non-empty strings.")
@@ -60,9 +63,12 @@ def load_config(path: Path, profile: str) -> tuple[dict[str, Any], bytes]:
         raise RunnerError("Profile 'environment' must be an array of variable names.")
     if not isinstance(dependency_files, list) or not all(isinstance(item, str) for item in dependency_files):
         raise RunnerError("Profile 'dependency_files' must be an array of paths.")
+    if not isinstance(snapshot_exclude, list) or not all(isinstance(item, str) and item for item in snapshot_exclude):
+        raise RunnerError("Profile 'snapshot_exclude' must be an array of non-empty glob patterns.")
     return {"command": command, "timeout_seconds": timeout,
             "environment": sorted(set(env_names)),
-            "dependency_files": sorted(set(dependency_files))}, raw
+            "dependency_files": sorted(set(dependency_files)),
+            "snapshot_exclude": sorted(set(snapshot_exclude))}, raw
 
 
 def git_head(root: Path) -> str | None:
@@ -74,26 +80,28 @@ def git_head(root: Path) -> str | None:
     return result.stdout.strip() if result.returncode == 0 else None
 
 
-def source_snapshot(root: Path, excluded: Path) -> dict[str, Any]:
-    """Hash file contents and symlink targets; fail closed on unreadable source."""
+def source_snapshot(root: Path, excluded: Path,
+                    extra_excludes: tuple[str, ...] = ()) -> dict[str, Any]:
+    """Hash eligible inputs and symlink targets; fail closed on unreadable source."""
     digest = hashlib.sha256()
     count = 0
-    for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
+    try:
+        excluded_roots = (excluded.relative_to(root).as_posix(),)
+    except ValueError:
+        excluded_roots = ()
+    try:
+        method, paths = source_paths(root, extra_excludes, excluded_roots)
+    except ScopeError as exc:
+        raise RunnerError(str(exc)) from exc
+    for path in paths:
         relative = path.relative_to(root)
-        if relative.parts[0] == ".git":
-            continue
-        try:
-            path.resolve().relative_to(excluded.resolve())
-            continue
-        except ValueError:
-            pass
-        except OSError as exc:
-            raise RunnerError(f"Cannot resolve {relative}: {exc}") from exc
         try:
             if path.is_symlink():
                 payload = b"symlink\0" + os.readlink(path).encode("utf-8", "surrogateescape")
             elif path.is_file():
                 payload = b"file\0" + path.read_bytes()
+            elif method == "git" and not path.exists():
+                payload = b"missing\0"
             else:
                 continue
         except OSError as exc:
@@ -105,6 +113,7 @@ def source_snapshot(root: Path, excluded: Path) -> dict[str, Any]:
         digest.update(payload)
         count += 1
     return {"tree_sha256": digest.hexdigest(), "file_count": count,
+            "method": method,
             "git_head": git_head(root)}
 
 
@@ -196,7 +205,8 @@ def run(root: Path, config_path: Path, profile: str, report_dir: Path) -> tuple[
         config, config_bytes = load_config(cfg_path, profile)
         command = resolve_command(config["command"])
         result["command"] = command
-        result["snapshot"] = source_snapshot(root, report_dir)
+        result["snapshot"] = source_snapshot(root, report_dir,
+                                             tuple(config["snapshot_exclude"]))
         result["environment_fingerprint"] = environment_fingerprint(
             root, config, config_bytes, command)
         (run_dir / "stdout.log").write_bytes(b"")
@@ -219,7 +229,8 @@ def run(root: Path, config_path: Path, profile: str, report_dir: Path) -> tuple[
         except OSError as exc:
             result["status"] = "ERROR"
             result["error"] = f"Could not execute command: {exc}"
-        after = source_snapshot(root, report_dir)
+        after = source_snapshot(root, report_dir,
+                                tuple(config["snapshot_exclude"]))
         result["snapshot_after"] = after
         result["snapshot_changed"] = after != result["snapshot"]
         if result["snapshot_changed"] and result["status"] == "PASS":
