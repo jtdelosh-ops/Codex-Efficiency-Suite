@@ -40,6 +40,16 @@ python3 /path/to/Codex-Efficiency-Suite/work_order.py --input work-order.json --
 
 Review both outputs before implementation. Treat JSON as the machine-readable contract and Markdown as its readable rendering. Preserve constraints, non-goals, and stop condition; follow the acceptance criteria and required verification. If validation fails, fix the input rather than weakening validation. This tool only validates and formats supplied content; it does not plan autonomously, call a model, or expand scope.
 
+For user-facing changes, describe the user's outcome and existing workflow in `goal` and `context`, and make acceptance criteria observable from the user's side. Separate established constraints from implementation assumptions. When repeated questions about a feature's purpose or a workflow correction suggest a mismatch, revisit those fields before another implementation or setup iteration. Do not invent an interaction target the user has not established. Keep the brief proportional and reuse existing fields; this guidance adds no schema, tool, approval, or mandatory artifact.
+
+For example, after the desired interaction is established:
+
+- Use `context` to record that the user already has a launcher for the app.
+- Use `acceptance_criteria` to describe the confirmed action path and observable result, such as the saved item, device, and playback position.
+- Use `non_goals` to exclude a separate API-credential setup when the existing app is the intended interface.
+
+These examples illustrate the existing fields, not a complete input document. A structurally valid work order does not establish that its assumptions are correct. A single ordinary question does not automatically require replanning.
+
 ### Environment Preflight (`preflight.py`) — stable
 
 Use before implementation when a project has explicit runtime, executable, file/directory, or environment-variable prerequisites. Configure only applicable requirements in `preflight.json`, then run:
@@ -119,7 +129,7 @@ Only `HIT` with all five exact key dimensions matching permits reuse. A source/c
 1. Read this guide and the manifest when adopting or updating suite tooling.
 2. For substantial changes, generate and inspect a fresh context packet. For a small, obvious edit, skip context generation if its output would add no useful evidence.
 3. Inspect relevant source, project instructions, tests, and conventions directly. When the task remains broad or has meaningful scope/acceptance ambiguity, complete and validate a work-order input, generate both outputs, and review the contract. Ask the user about missing requirements; never fabricate criteria. Decide which verification checks apply; configure project-specific commands rather than assuming this suite's own tests validate the target project.
-4. Implement only the requested scope and valid work-order contract. Rebuild context if source changes make the packet stale or materially alter retrieval.
+4. For user-facing workflow changes, apply the outcome-and-assumption guidance above. Implement only the requested scope and valid work-order contract. Rebuild context if source changes make the packet stale or materially alter retrieval.
 5. When equivalent failures repeat, consult the No-Progress Circuit Breaker; honor `STOP` by changing evidence/approach or stopping, not by cosmetically rewording a retry. Reuse prior outputs only through Snapshot-Aware Cache Reuse and only on an exact `HIT`; otherwise recompute.
 6. Run the target project's checks and the verification runner when configured. After the last source edit, rerun final checks.
 7. Report what changed, exact checks and outcomes, freshness limitations, and unresolved issues. Never convert a failed, skipped, or unavailable check into a pass claim.
