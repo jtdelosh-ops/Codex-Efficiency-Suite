@@ -126,6 +126,20 @@ Only `HIT` with all five exact key dimensions matching permits reuse. A source/c
 
 Standard substantial-task sequence: fresh context packet → validated work order (when scope warrants it) → implementation within its constraints/non-goals/stop condition → final verification.
 
+## Measuring the next three comparable tasks
+
+At kickoff, record the start time and describe the user's action, the expected result, and the environment that matters. As soon as a working slice exists, try that action through its normal entry point. Record when it first succeeds and link the evidence. If the target device is unavailable, label any substitute check and leave the target-device result open.
+
+When using review agents, give each one a distinct question about a specific failure mode. For example, while the implementer checks a one-tap save on the phone, a reviewer can examine whether a retry overwrites a newer save. Record the answer and any correction it prompted.
+
+Keep one short entry per task in the existing project handoff or PR. Fill in the timing as the work happens. Use “unknown” for missing measurements.
+
+| Task and scope | Elapsed minutes from start to first verified flow / completion | Active minutes for implementer / review agents | Corrections after review | Checks or reviews reused and evidence for reuse |
+| --- | --- | --- | --- | --- |
+| | | | | |
+
+Sum active minutes across review agents even when they overlap. Record the suite tools used and any significant wait alongside the entry. After three comparable tasks, compare first-flow time, total elapsed time, effort, and rework with similar earlier tasks where measurements exist. If earlier timing is unavailable, use these entries as the baseline. Describe any defect a reviewer caught and any repeat check the suite saved.
+
 ## Adding future tools
 
 When implementing a suite tool, first check the manifest and blueprint/roadmap for scope and dependencies. Keep each addition bounded, dependency-light, and testable. Add deterministic acceptance tests and concise usage documentation. Update `suite-manifest.json` in the same change with name, purpose, status, entrypoint, invocation, applicable projects, required configuration, outputs, freshness/safety boundaries, and acceptance evidence. Mark a tool `stable` only when its declared acceptance tests pass; otherwise mark it `experimental` and say what remains. Update this guide and README when the user-facing tool set or workflow changes. Preserve existing tools and project conventions; do not add infrastructure outside the accepted scope.
