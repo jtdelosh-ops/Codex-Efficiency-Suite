@@ -4,6 +4,8 @@ For cross-platform JSON command configurations, use the portable `{python}` toke
 
 The suite provides a deterministic Verification Runner, Repository Context Builder, Work-Order Builder, Environment Preflight, Failure History Keeper, Session Handoff Builder, No-Progress Circuit Breaker, and Snapshot-Aware Cache Reuse. See [suite-manifest.json](suite-manifest.json) for each tool's status and contract, and [CODEX-SUITE-GUIDE.md](CODEX-SUITE-GUIDE.md) for when and how Codex should use them. All are local, dependency-free tools; none calls a model or network service.
 
+For the next three comparable tasks, use the [measurement pilot](CODEX-SUITE-GUIDE.md#measuring-the-next-three-comparable-tasks) to track the first working user flow, review effort, rework, and evidence reuse.
+
 ## No-Progress Circuit Breaker
 
 Use after repeated equivalent failures. Stable signatures detect repeats; only explicit changed evidence/approach identifiers count as materially new, not changed summary wording.
